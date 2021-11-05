@@ -135,43 +135,65 @@ def fuzzy_topic_search(update: Update, context: CallbackContext) -> None:
     text = "Die besten 3 Treffer sind die Episoden:\n" + "\n".join(episodes)
     update.message.reply_text(text, quote=False, parse_mode=ParseMode.MARKDOWN)
 
+
+
 def topics_of_episode(update: Update, context: CallbackContext) -> None:
+
+    regex_pattern_episode_number = "(?:Minkorrekt(?:\ Folge)?\ |Mi)(\d+\w?)"
+
     MINKORREKT_RSS = 'http://minkorrekt.de/feed/mp3'
     mi_feed = feedparser.parse(MINKORREKT_RSS)
+    #List of titles+description per episode
+    episode_numbers = [re.match(regex_pattern_episode_number, entry.title)[1] if not re.match(regex_pattern_episode_number, entry.title) is None else None for entry in mi_feed.entries]
     topics_all_episodes = [[i.title, i.content[0].value.replace("<!-- /wp:paragraph -->", "").replace("<!-- wp:paragraph -->", "")] for i in mi_feed.entries]
+
     i = update.message.text.find(' ')
     if i > 0:
-        episode_number = update.message.text[i+1:]
-    try:
-        episode_number = int(episode_number)
-        # Special case for the split episodes 12 and 12b
-        if episode_number >= 13:
-            index_number  = len(topics_all_episodes)-2-episode_number
-        else:
-            index_number = len(topics_all_episodes)-1-episode_number
-    except:
-        print("Es gab einen Fehler mit der Episodennummer.\nStelle sicher, dass du eine Zahl angegeben hast!")
-    # If someone asks for episode number 12, they will automatically retrieve
-    # episode 12b as well since they basically belong together
-    if episode_number == 12:
-        episode_topics = topics_all_episodes[index_number-1:index_number+1][::-1]
-        episode_topics = ["".join(tops) for tops in episode_topics]
+        requested_episode_number = update.message.text[i+1:]
+        if requested_episode_number == '101':
+            import pdb
+            pdb.set_trace()
     else:
-        episode_topics = topics_all_episodes[index_number]
-    episode_topics = " ".join(episode_topics)
-    topic_start_points = [m.start() for m in re.finditer("Thema [1, 2, 3, 4]", episode_topics)]
+        text = "Bitte eine Episodennummer beim Aufruf mit angeben."
+        update.message.reply_text(text, quote=False, parse_mode=ParseMode.MARKDOWN)
+        return None
+    if requested_episode_number == '12':
+        target_episode_index = episode_numbers.index("12a")
+        # Get the entries for 12a and 12b and reverse the order so they're correctly displayed
+        requested_episode_topics = topics_all_episodes[target_episode_index:target_episode_index+1][::-1]
+    else:
+        try:
+            target_episode_index = episode_numbers.index(requested_episode_number)
+        except:
+            text = f"Nicht gefunden.\nEpisode {requested_episode_number} gab es möglicherweise nicht."
+            update.message.reply_text(text, quote=False, parse_mode=ParseMode.MARKDOWN)
+            return None
+        requested_episode_topics = topics_all_episodes[target_episode_index]
+
+    requested_episode_topics = " ".join(requested_episode_topics)
+    topic_start_points = [m.start() for m in re.finditer("Thema [1, 2, 3, 4]", requested_episode_topics)]
     topic_end_points = []
     for start in topic_start_points:
-        topic_end_points.append(start + episode_topics[start:].find('\n'))
+        topic_end_points.append(start + requested_episode_topics[start:].find('\n'))
     if 0 == len(topic_start_points):
-        return "Themen nicht gefunden.\nWahrscheinlich Nobelpreis/Jahresrückblick-Folge"
-    topics = [html2markdown.convert(episode_topics[start:end]) for start, end in zip(topic_start_points, topic_end_points)]
+        text = "Themen nicht gefunden.\nWahrscheinlich Nobelpreis/Jahresrückblick-Folge"
+        update.message.reply_text(text, quote=False, parse_mode=ParseMode.MARKDOWN)
+        return None
+    topics = [html2markdown.convert(requested_episode_topics[start:end]) for start, end in zip(topic_start_points, topic_end_points)]
     topics_text = "\n".join(topics)
-    episode_title = "12a Du wirst wieder angerufen! & 12b Previously (on) Lost" if episode_number == 12 else topics_all_episodes[index_number][0]
+    # Used to find double open/closed braces which break links in markdown (e.g. (this))
+    #double_braces_matches = re.search(r"\(.*?(\(.*?\)).*?\)", topics_text)
+    #if double_braces_matches is not None:
+    #    import pdb
+    #    pdb.set_trace()
+    #    # We have a match
+    #    # Select group1 (i.e. the inner braces)
+    #    original_text = double_braces_matches[1]
+    #    replace_text = double_braces_matches[1].replace(')', r'\)')
+    #    topics_text = topics_text.replace(original_text, replace_text)
+    episode_title = "12a Du wirst wieder angerufen! & 12b Previously (on) Lost" if requested_episode_number == '12' else topics_all_episodes[target_episode_index][0]
     text = f"Die Themen von Folge {episode_title} sind:\n{topics_text}"
     update.message.reply_text(text, quote=False, parse_mode=ParseMode.MARKDOWN)
-
-
 
 
 updater = Updater(TOKEN)
