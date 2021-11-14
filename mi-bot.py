@@ -175,7 +175,7 @@ def fuzzy_topic_search(update: Update, context: CallbackContext) -> None:
     ratios = process.extract(search_term, topics_all_episodes)
     episodes = [ratio[0][0] for ratio in ratios[:3]]
     text = "Die besten 3 Treffer sind die Episoden:\n" + "\n".join(episodes)
-    update.message.reply_text(text, quote=False, parse_mode=ParseMode.MARKDOWN_v2)
+    update.message.reply_text(text, quote=False, parse_mode=ParseMode.MARKDOWN)
 
 
 def topics_of_episode(update: Update, context: CallbackContext) -> None:
