@@ -241,7 +241,7 @@ updater = Updater(TOKEN)
 bot = updater.bot
 
 updater.dispatcher.add_handler(CommandHandler('findeStichwort', fuzzy_topic_search))
-updater.dispatcher.add_handler(CommandHandler('themenVonFolgeX', topics_of_episode))
+updater.dispatcher.add_handler(CommandHandler('themenVonFolge', topics_of_episode))
 updater.dispatcher.add_handler(CommandHandler('letzteEpisode', latest_episode))
 updater.dispatcher.add_handler(CommandHandler('keks', cookie))
 updater.dispatcher.add_handler(CommandHandler('crowsay', crowsay))
